@@ -1,60 +1,136 @@
-import {Link } from "react-router-dom";
-function FormDatosCuenta() {
-    return (
-          <div className="container">
-            <form>
-                <div class="row">
-                    <div class="row" id = "encabezado">
-                        <h1 class="text-center">Modificar Datos de la Cuenta</h1>
-                    </div>   
+import React, { Component } from 'react';
+import './css/Login.css';
+import 'bootstrap/dist/css/bootstrap.min.css';
+import axios from 'axios';
+import Cookies from 'universal-cookie';
+const cookies = new Cookies();
+const usuario=cookies.get('usuario');
+const nombre_usuario=cookies.get('nombres');
+const rol_usuario=cookies.get('rol');
+const {genSalt, hash, compare}=require('bcryptjs');
 
-                    <div class="row">
-                        <div class="col"><label>Usuario</label></div>
-                        <div class="col"><input type="text" name="usuario" placeholder="Digite Usuario" ></input></div>
-                    </div>
+class FormDatosCuenta extends Component {
+    state={
+        form:{
+            usernick_anterior: '',
+            password_anterior: '',
+            password_nuevo_1: '',
+            password_nuevo_2: ''
+        }
+    }
 
-                    <div class="row">
-                        <div class="col"><label></label></div>
-                    </div>
+    handleChange=async e=>{
+        await this.setState({
+            form:{
+                ...this.state.form,
+                [e.target.name]: e.target.value
+            }
+        });
+    }
 
+    actualizar=async()=>{
+        // Realizo Logueo
+        let data = JSON.stringify({
+            usuario: this.state.form.usernick_anterior,
+            contrasena: this.state.form.password_anterior
+          });
+        console.log(data);
+        
+        try{
+            const response_previo = await axios.post("http://localhost:9000/users/login/",data,{headers:{"Content-Type" : "application/json"}});
+            console.log("Devolviendo la respuesta");
+            if(response_previo.data.token.length>0){
 
-                    <div class="row">
-                        <div class="col"><label>Nombres</label></div>
-                        <div class="col"><input type="text" name="nombre" placeholder="Digite Nombres del Usuario" ></input></div>
-                    </div>
+                if(String(this.state.form.password_nuevo_1)===String(this.state.form.password_nuevo_2)){
 
-                    <div class="row">
-                        <div class="col"><label></label></div>
-                    </div>
+                  console.log("Encriptando Contraseña");
+                  const salt=await genSalt(5);
+                  const contrasena_encriptada=await hash(this.state.form.password_nuevo_1,salt);
 
+                    let data1 = JSON.stringify({
+                        usuario: this.state.form.usernick_anterior,
+                        contrasena: contrasena_encriptada,
+                        nombres: nombre_usuario,
+                        rol: rol_usuario
+                      });
+                    console.log(data1);
 
-                    <div class="row">
-                        <div class="col"><label>Contraseña</label></div>
-                        <div class="col"><input type="password" name="password" placeholder="Digite Contraseña" ></input></div>
-                    </div>
-                    
-                    <div class="row">
-                        <div class="col"><label></label></div>
-                    </div>
+                    const response = axios.post('http://localhost:9000/users/actualiza_datos_usuario/',data1,{headers:{"Content-Type" : "application/json"}});
 
+                    alert('Datos del usuario actualizados');
+                    window.location.href="./Login";
+                }
+                else{
+                    alert('Contraseñas nuevas no coinciden'); 
+                }
 
-                    <div class="row">
-                        <div class="col"><label>Digite de nuevo la Contraseña</label></div>
-                        <div class="col"><input type="password" name="password" placeholder="Confirme Contraseña" ></input></div>
-                    </div>
-                    
-                    <div class="row">
-                        <div class="col"><label></label></div>
-                    </div>
+            } 
+            else{
+                alert('No se pueden modificar los datos. El usuario o la contraseña actuales no son correctos');
+            }
+        }
+        catch(e){
+            alert('No se pueden modificar los datos. El usuario o la contraseña actuales no son correctos');
+            console.log(e);
+        }       
+    }
 
-                    <div class="row">
-                        <div class="col" align="center" className="btn-group" >
-                            <Link to="/Login" className="btn btn-primary">Modificar</Link>
-                        </div> 
-                    </div>
-                </div>
-            </form>
-          </div>  
-    );
+    render() {
+        return (
+
+        <div align="center">
+        <h3>Modificar datos del usuario  {nombre_usuario}</h3>   
+        <div className="containerPrincipal">
+        <div className="containerSecundario">
+          <div className="form-group">
+
+          <label>Digite Usuario Actual: </label>
+            <br />
+            <input
+              type="text"
+              className="form-control"
+              name="usernick_anterior"
+              onChange={this.handleChange}
+            />
+            <br />
+
+           <label>Digite Contraseña Actual: </label>
+            <br />
+            <input
+              type="password"
+              className="form-control"
+              name="password_anterior"
+              onChange={this.handleChange}
+            />
+            <br />
+            
+            <h5>Información a modificar</h5> 
+            
+            <label>Digite Nueva Contraseña: </label>
+            <br />
+            <input
+              type="password"
+              className="form-control"
+              name="password_nuevo_1"
+              onChange={this.handleChange}
+            />
+            <br />
+            <label>Digite Nueva Contraseña otra vez: </label>
+            <br />
+            <input
+              type="password"
+              className="form-control"
+              name="password_nuevo_2"
+              onChange={this.handleChange}
+            />
+            <br />
+            <button className="btn btn-primary" onClick={()=> this.actualizar()}>Actualizar datos</button>
+          </div>
+        </div>
+      </div>
+      </div>
+        );
+    }
 }
+
 export default FormDatosCuenta;
